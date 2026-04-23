@@ -74,8 +74,20 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
     case MSG_DECK_LIST: {
       Tuple *list_t = dict_find(iter, KEY_DECK_LIST);
       if (list_t) parse_deck_list(list_t->value->cstring);
-      s_state.state = APP_STATE_DECK_MENU;
       if (card_window_is_on_stack()) window_stack_pop(false);
+      // Auto-open last used deck if it's still in the list
+      char saved[MAX_DECK_NAME] = {0};
+      if (persist_read_string(0, saved, sizeof(saved)) > 0) {
+        for (int i = 0; i < s_state.deck_count; i++) {
+          if (strcmp(s_state.deck_names[i], saved) == 0) {
+            s_state.state = APP_STATE_FETCHING;
+            main_window_refresh();
+            send_select_deck(saved);
+            return;
+          }
+        }
+      }
+      s_state.state = APP_STATE_DECK_MENU;
       main_window_refresh();
       break;
     }
