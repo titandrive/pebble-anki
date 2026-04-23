@@ -117,7 +117,7 @@ void main_window_deinit(void) {
 }
 
 void main_window_refresh(void) {
-  if (!s_window || !window_is_loaded(s_window)) return;
+  if (!s_status_layer || !s_menu_layer) return;
 
   AppState *s = messaging_get_state();
   bool show_menu = (s->state == APP_STATE_DECK_MENU);
