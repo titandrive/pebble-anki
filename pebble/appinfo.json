@@ -1,0 +1,25 @@
+{
+  "uuid": "11867ba6-5ed8-45c6-b4b7-32d695240ce5",
+  "shortName": "Anki",
+  "longName": "Anki Review",
+  "companyName": "PebbleAnki",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt", "chalk", "diorite"],
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "KEY_MSG_TYPE":   0,
+    "KEY_CARD_FRONT": 1,
+    "KEY_CARD_BACK":  2,
+    "KEY_CARD_ID":    3,
+    "KEY_DECK_NAME":  4,
+    "KEY_DECK_LIST":  5,
+    "KEY_ANSWER":     6
+  },
+  "resources": {
+    "media": []
+  }
+}
