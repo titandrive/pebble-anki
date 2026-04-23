@@ -1,5 +1,6 @@
 #include "card_window.h"
 #include "messaging.h"
+#include "main_window.h"
 
 // ---- Layout (adapts to display size) ---------------------------------------
 //
@@ -108,12 +109,18 @@ static void prv_scroll_down(ClickRecognizerRef r, void *ctx) {
   prv_apply_scroll();
 }
 
+static void prv_long_select(ClickRecognizerRef r, void *ctx) {
+  window_stack_pop(true);
+  main_window_show_deck_menu();
+}
+
 static void prv_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP,     prv_up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN,   prv_down_click);
-  window_long_click_subscribe(BUTTON_ID_UP,   0, prv_scroll_up,   NULL);
-  window_long_click_subscribe(BUTTON_ID_DOWN, 0, prv_scroll_down, NULL);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 0, prv_long_select, NULL);
+  window_long_click_subscribe(BUTTON_ID_UP,     0, prv_scroll_up,   NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN,   0, prv_scroll_down, NULL);
 }
 
 // ---- Window lifecycle ------------------------------------------------------

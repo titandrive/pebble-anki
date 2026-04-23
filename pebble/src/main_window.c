@@ -54,6 +54,7 @@ static void prv_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   AppState *s = messaging_get_state();
   if (idx->row >= (uint16_t)s->deck_count) return;
 
+  persist_write_string(0, s->deck_names[idx->row]);
   s->state = APP_STATE_FETCHING;
   main_window_refresh();
   send_select_deck(s->deck_names[idx->row]);
@@ -114,6 +115,11 @@ void main_window_push(void) {
 
 void main_window_deinit(void) {
   window_destroy(s_window);
+}
+
+void main_window_show_deck_menu(void) {
+  messaging_get_state()->state = APP_STATE_DECK_MENU;
+  main_window_refresh();
 }
 
 void main_window_refresh(void) {

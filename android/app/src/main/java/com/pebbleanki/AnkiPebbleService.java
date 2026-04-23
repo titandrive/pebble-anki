@@ -12,9 +12,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.SharedPreferences;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -141,6 +144,11 @@ public class AnkiPebbleService extends Service {
         }
     }
 
+    private Set<String> getSelectedDecks() {
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+        return prefs.getStringSet(MainActivity.PREF_SELECTED, null);
+    }
+
     private void handleGetDecks() {
         List<AnkiDroidHelper.Deck> decks = mAnki.getDecks();
         if (decks.isEmpty()) {
@@ -148,13 +156,17 @@ public class AnkiPebbleService extends Service {
             return;
         }
 
+        Set<String> selected = getSelectedDecks();
+
         mDeckNameToId.clear();
         StringBuilder sb = new StringBuilder();
         for (AnkiDroidHelper.Deck deck : decks) {
+            // If user has configured a selection, filter to it; otherwise show all
+            if (selected != null && !selected.contains(deck.name)) continue;
             mDeckNameToId.put(deck.name, deck.id);
             if (sb.length() > 0) sb.append('\n');
             sb.append(deck.name);
-            if (sb.length() > 1800) break; // stay within AppMessage budget
+            if (sb.length() > 1800) break;
         }
 
         PebbleMsg response = new PebbleMsg()

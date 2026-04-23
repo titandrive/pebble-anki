@@ -2,33 +2,43 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:orientation="vertical">
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Pebble Anki"
-        android:textSize="24sp"
+        android:textSize="20sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:padding="16dp"
+        android:background="#222222"
+        android:textColor="#FFFFFF" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select decks to show on your Pebble:"
+        android:textSize="14sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp" />
+
+    <ListView
+        android:id="@+id/deck_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:choiceMode="multipleChoice" />
 
     <TextView
         android:id="@+id/status_text"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Starting service..."
-        android:textSize="16sp"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Make sure AnkiDroid API is enabled:\nAnkiDroid → Settings → Advanced → Enable AnkiDroid API"
+        android:text="Loading decks..."
         android:textSize="13sp"
+        android:textColor="#888888"
         android:gravity="center"
-        android:textColor="#888888" />
+        android:padding="12dp" />
 
 </LinearLayout>
