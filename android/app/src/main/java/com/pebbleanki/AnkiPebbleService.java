@@ -134,9 +134,16 @@ public class AnkiPebbleService extends Service {
         mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                android.os.Bundle extras = intent.getExtras();
+                StringBuilder dbg = new StringBuilder("keys:");
+                if (extras != null) {
+                    for (String k : extras.keySet()) dbg.append(k).append("=").append(extras.get(k)).append(" ");
+                } else {
+                    dbg.append("(none)");
+                }
+                toast(dbg.toString());
+
                 String uuid = intent.getStringExtra(EXTRA_UUID);
-                String msg  = intent.getStringExtra(EXTRA_MSG);
-                toast("rcvd uuid=" + uuid + " msg=" + msg);
                 if (uuid != null && !APP_UUID.toString().equalsIgnoreCase(uuid)) return;
 
                 int transactionId = intent.getIntExtra(EXTRA_TRANSACTION, -1);
