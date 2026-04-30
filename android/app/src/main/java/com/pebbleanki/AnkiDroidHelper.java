@@ -70,13 +70,28 @@ public class AnkiDroidHelper {
         List<Deck> decks = new ArrayList<>();
         Cursor c = null;
         try {
-            c = mCr.query(DECKS_URI,
-                    new String[]{COL_DECK_ID, COL_DECK_NAME},
-                    null, null, null);
+            c = mCr.query(DECKS_URI, null, null, null, null);
             if (c == null) return decks;
+
+            // Find ID column
+            int idCol = c.getColumnIndex("_id");
+            if (idCol == -1) idCol = c.getColumnIndex("deck_id");
+            if (idCol == -1) idCol = 0;
+
+            // Find name column — try known variants
+            int nameCol = -1;
+            for (String candidate : new String[]{"deck_name", "name", "deckName"}) {
+                int idx = c.getColumnIndex(candidate);
+                if (idx != -1) { nameCol = idx; break; }
+            }
+
+            // If name column still not found, expose column names for debugging
+            String debugCols = nameCol == -1
+                    ? "cols=" + java.util.Arrays.toString(c.getColumnNames()) : null;
+
             while (c.moveToNext()) {
-                long   id   = c.getLong(c.getColumnIndexOrThrow(COL_DECK_ID));
-                String name = c.getString(c.getColumnIndexOrThrow(COL_DECK_NAME));
+                long   id   = c.getLong(idCol);
+                String name = nameCol != -1 ? c.getString(nameCol) : debugCols;
                 decks.add(new Deck(id, name));
             }
         } catch (Exception e) {
