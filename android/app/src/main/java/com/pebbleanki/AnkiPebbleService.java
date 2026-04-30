@@ -1,12 +1,18 @@
 package com.pebbleanki;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -74,12 +80,31 @@ public class AnkiPebbleService extends Service {
 
     // ---- Lifecycle ---------------------------------------------------------
 
+    private static final String CHANNEL_ID = "pebble_anki";
+
     @Override
     public void onCreate() {
         super.onCreate();
         mAnki = new AnkiDroidHelper(this);
+        startForegroundWithNotification();
         registerPebbleReceiver();
         Log.i(TAG, "Service started");
+    }
+
+    private void startForegroundWithNotification() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID, "Pebble Anki", NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Bridges Pebble watch to AnkiDroid");
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        }
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Pebble Anki")
+                .setContentText("Listening for Pebble watch")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build();
+        startForeground(1, notification);
     }
 
     @Override
@@ -122,7 +147,7 @@ public class AnkiPebbleService extends Service {
             }
         };
         IntentFilter filter = new IntentFilter(ACTION_RECEIVE);
-        registerReceiver(mReceiver, filter);
+        registerReceiver(mReceiver, filter, Context.RECEIVER_EXPORTED);
     }
 
     private void sendAck(int transactionId) {
