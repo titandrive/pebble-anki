@@ -14,15 +14,34 @@
         android:background="#222222"
         android:textColor="#FFFFFF" />
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Select decks to show on your Pebble:"
-        android:textSize="14sp"
+        android:orientation="horizontal"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="8dp" />
+        android:paddingTop="8dp"
+        android:paddingBottom="4dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Select decks to show on your Pebble:"
+            android:textSize="14sp"
+            android:textColor="#212121" />
+
+        <Button
+            android:id="@+id/btn_toggle_all"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select All"
+            android:textSize="12sp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp" />
+
+    </LinearLayout>
 
     <ListView
         android:id="@+id/deck_list"
