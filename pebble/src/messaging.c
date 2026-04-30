@@ -39,7 +39,7 @@ void send_answer(int32_t session_idx, int ease) {
 
 static void parse_deck_list(const char *raw) {
   s_state.deck_count = 0;
-  char buf[INBOX_SIZE];
+  static char buf[INBOX_SIZE];
   strncpy(buf, raw, sizeof(buf) - 1);
   buf[sizeof(buf) - 1] = '\0';
 
@@ -59,6 +59,15 @@ static void parse_deck_list(const char *raw) {
     strncpy(s_state.deck_names[s_state.deck_count], p, MAX_DECK_NAME - 1);
     s_state.deck_names[s_state.deck_count][MAX_DECK_NAME - 1] = '\0';
     s_state.deck_count++;
+  }
+}
+
+// ---- Timer callbacks -------------------------------------------------------
+
+static void prv_send_pending_deck(void *ctx) {
+  if (s_state.pending_deck[0]) {
+    send_select_deck(s_state.pending_deck);
+    s_state.pending_deck[0] = '\0';
   }
 }
 
@@ -82,7 +91,9 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
           if (strcmp(s_state.deck_names[i], saved) == 0) {
             s_state.state = APP_STATE_FETCHING;
             main_window_refresh();
-            send_select_deck(saved);
+            // Defer send — can't call outbox_begin inside inbox callback
+            strncpy(s_state.pending_deck, saved, MAX_DECK_NAME - 1);
+            app_timer_register(100, prv_send_pending_deck, NULL);
             return;
           }
         }
