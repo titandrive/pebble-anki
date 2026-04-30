@@ -51,6 +51,7 @@ typedef struct {
   char    card_back[MAX_CARD_TEXT];
 
   char error_msg[64];
+  char pending_deck[MAX_DECK_NAME];
 } AppState;
 
 void       messaging_init(void);
