@@ -9,11 +9,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 
@@ -48,7 +45,7 @@ public class AnkiPebbleService extends Service {
     private static final String ACTION_RECEIVE_ACK = "com.getpebble.action.app.RECEIVE_ACK";
     private static final String ACTION_SEND        = "com.getpebble.action.app.SEND";
     private static final String EXTRA_UUID         = "uuid";
-    private static final String EXTRA_MSG          = "msg";
+    private static final String EXTRA_MSG          = "msg_data";
     private static final String EXTRA_TRANSACTION  = "transaction_id";
 
     // AppMessage keys — must match pebble/appinfo.json appKeys
@@ -134,15 +131,6 @@ public class AnkiPebbleService extends Service {
         mReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                android.os.Bundle extras = intent.getExtras();
-                StringBuilder dbg = new StringBuilder("keys:");
-                if (extras != null) {
-                    for (String k : extras.keySet()) dbg.append(k).append("=").append(extras.get(k)).append(" ");
-                } else {
-                    dbg.append("(none)");
-                }
-                toast(dbg.toString());
-
                 String uuid = intent.getStringExtra(EXTRA_UUID);
                 if (uuid != null && !APP_UUID.toString().equalsIgnoreCase(uuid)) return;
 
@@ -345,8 +333,4 @@ public class AnkiPebbleService extends Service {
         String toJson() { return json.toString(); }
     }
 
-    private void toast(final String msg) {
-        new Handler(Looper.getMainLooper()).post(() ->
-                Toast.makeText(AnkiPebbleService.this, msg, Toast.LENGTH_LONG).show());
-    }
 }
