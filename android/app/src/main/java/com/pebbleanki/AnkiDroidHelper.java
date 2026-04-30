@@ -27,7 +27,7 @@ public class AnkiDroidHelper {
 
     // Deck columns
     private static final String COL_DECK_ID   = "_id";
-    private static final String COL_DECK_NAME = "name";
+    private static final String COL_DECK_NAME = "deck_name";
 
     // ReviewInfo columns
     private static final String COL_NOTE_ID  = "note_id";
