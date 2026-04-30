@@ -135,8 +135,9 @@ public class AnkiPebbleService extends Service {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String uuid = intent.getStringExtra(EXTRA_UUID);
-                toast("Pebble msg rcvd, uuid=" + uuid);
-                if (!APP_UUID.toString().equalsIgnoreCase(uuid)) return;
+                String msg  = intent.getStringExtra(EXTRA_MSG);
+                toast("rcvd uuid=" + uuid + " msg=" + msg);
+                if (uuid != null && !APP_UUID.toString().equalsIgnoreCase(uuid)) return;
 
                 int transactionId = intent.getIntExtra(EXTRA_TRANSACTION, -1);
                 sendAck(transactionId);
