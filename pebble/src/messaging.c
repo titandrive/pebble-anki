@@ -74,16 +74,25 @@ static void prv_send_pending_deck(void *ctx) {
 // ---- Inbox -----------------------------------------------------------------
 
 static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "inbox_received");
   Tuple *type_t = dict_find(iter, KEY_MSG_TYPE);
-  if (!type_t) return;
+  if (!type_t) { APP_LOG(APP_LOG_LEVEL_ERROR, "no msg type"); return; }
 
   uint32_t msg_type = type_t->value->uint32;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "msg_type=%lu", msg_type);
 
   switch (msg_type) {
     case MSG_DECK_LIST: {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "MSG_DECK_LIST");
       Tuple *list_t = dict_find(iter, KEY_DECK_LIST);
-      if (list_t) parse_deck_list(list_t->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "list_t=%p", list_t);
+      if (list_t) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "parsing deck list len=%d", (int)strlen(list_t->value->cstring));
+        parse_deck_list(list_t->value->cstring);
+      }
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "deck_count=%d", s_state.deck_count);
       if (card_window_is_on_stack()) window_stack_pop(false);
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "checking persist");
       // Auto-open last used deck if it's still in the list
       char saved[MAX_DECK_NAME] = {0};
       if (persist_read_string(0, saved, sizeof(saved)) > 0) {
@@ -98,8 +107,10 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
           }
         }
       }
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "showing deck menu");
       s_state.state = APP_STATE_DECK_MENU;
       main_window_refresh();
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "deck menu shown");
       break;
     }
     case MSG_CARD: {
