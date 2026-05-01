@@ -23,7 +23,7 @@ static void init(void) {
   prv_log_crash_stage(4);
   main_window_push();
   prv_log_crash_stage(5);
-  send_get_decks();
+  // send_get_decks();  // DISABLED: testing if crash is in inbox callback
   prv_log_crash_stage(6);
 }
 
