@@ -89,7 +89,10 @@ static void prv_window_load(Window *win) {
   menu_layer_set_click_config_onto_window(s_menu_layer, win);
   layer_add_child(root, menu_layer_get_layer(s_menu_layer));
 
-  main_window_refresh();
+  // Initialize view state directly — initial state is always APP_STATE_LOADING
+  layer_set_hidden(text_layer_get_layer(s_status_layer), false);
+  layer_set_hidden(menu_layer_get_layer(s_menu_layer), true);
+  text_layer_set_text(s_status_layer, "Connecting\nto Anki...");
 }
 
 static void prv_window_unload(Window *win) {
