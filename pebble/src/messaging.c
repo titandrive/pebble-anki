@@ -65,6 +65,7 @@ static void parse_deck_list(const char *raw) {
 // ---- Timer callbacks -------------------------------------------------------
 
 static void prv_update_ui(void *ctx) {
+  persist_write_int(98, s_state.state);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "prv_update_ui state=%d decks=%d", (int)s_state.state, s_state.deck_count);
   if (card_window_is_on_stack()) window_stack_pop(false);
 
