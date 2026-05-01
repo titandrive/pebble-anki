@@ -34,6 +34,7 @@ typedef enum {
   APP_STATE_LOADING,    // "Connecting..." — waiting for deck list
   APP_STATE_DECK_MENU,  // deck list ready, showing MenuLayer
   APP_STATE_FETCHING,   // "Loading cards..." — deck selected, waiting for first card
+  APP_STATE_CARD,       // card received, push card window
   APP_STATE_DONE,       // "Deck complete!"
   APP_STATE_ERROR,      // "Error!" — something went wrong
 } AppStateKind;

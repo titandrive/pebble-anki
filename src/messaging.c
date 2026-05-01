@@ -64,10 +64,26 @@ static void parse_deck_list(const char *raw) {
 
 // ---- Timer callbacks -------------------------------------------------------
 
-static void prv_send_pending_deck(void *ctx) {
-  if (s_state.pending_deck[0]) {
+static void prv_update_ui(void *ctx) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "prv_update_ui state=%d decks=%d", (int)s_state.state, s_state.deck_count);
+  if (card_window_is_on_stack()) window_stack_pop(false);
+
+  if (s_state.state == APP_STATE_FETCHING && s_state.pending_deck[0]) {
+    main_window_refresh();
     send_select_deck(s_state.pending_deck);
     s_state.pending_deck[0] = '\0';
+    return;
+  }
+
+  if (s_state.state == APP_STATE_DECK_MENU ||
+      s_state.state == APP_STATE_FETCHING ||
+      s_state.state == APP_STATE_DONE ||
+      s_state.state == APP_STATE_ERROR) {
+    main_window_refresh();
+  }
+
+  if (s_state.state == APP_STATE_CARD) {
+    card_window_push();
   }
 }
 
@@ -76,41 +92,29 @@ static void prv_send_pending_deck(void *ctx) {
 static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "inbox_received");
   Tuple *type_t = dict_find(iter, KEY_MSG_TYPE);
-  if (!type_t) { APP_LOG(APP_LOG_LEVEL_ERROR, "no msg type"); return; }
+  if (!type_t) return;
 
   uint32_t msg_type = type_t->value->uint32;
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "msg_type=%lu", msg_type);
 
   switch (msg_type) {
     case MSG_DECK_LIST: {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "MSG_DECK_LIST");
       Tuple *list_t = dict_find(iter, KEY_DECK_LIST);
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "list_t=%p", list_t);
-      if (list_t) {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "parsing deck list len=%d", (int)strlen(list_t->value->cstring));
-        parse_deck_list(list_t->value->cstring);
-      }
+      if (list_t) parse_deck_list(list_t->value->cstring);
       APP_LOG(APP_LOG_LEVEL_DEBUG, "deck_count=%d", s_state.deck_count);
-      if (card_window_is_on_stack()) window_stack_pop(false);
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "checking persist");
-      // Auto-open last used deck if it's still in the list
+      // Check for saved deck to auto-open
       char saved[MAX_DECK_NAME] = {0};
       if (persist_read_string(0, saved, sizeof(saved)) > 0) {
         for (int i = 0; i < s_state.deck_count; i++) {
           if (strcmp(s_state.deck_names[i], saved) == 0) {
             s_state.state = APP_STATE_FETCHING;
-            main_window_refresh();
-            // Defer send — can't call outbox_begin inside inbox callback
             strncpy(s_state.pending_deck, saved, MAX_DECK_NAME - 1);
-            app_timer_register(100, prv_send_pending_deck, NULL);
+            app_timer_register(50, prv_update_ui, NULL);
             return;
           }
         }
       }
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "showing deck menu");
       s_state.state = APP_STATE_DECK_MENU;
-      main_window_refresh();
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "deck menu shown");
+      app_timer_register(50, prv_update_ui, NULL);
       break;
     }
     case MSG_CARD: {
@@ -120,21 +124,20 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
       if (front_t) strncpy(s_state.card_front, front_t->value->cstring, MAX_CARD_TEXT - 1);
       if (back_t)  strncpy(s_state.card_back,  back_t->value->cstring,  MAX_CARD_TEXT - 1);
       if (id_t)    s_state.card_session_idx = (int32_t)id_t->value->uint32;
-      card_window_push();
+      s_state.state = APP_STATE_CARD;
+      app_timer_register(50, prv_update_ui, NULL);
       break;
     }
     case MSG_DONE: {
       s_state.state = APP_STATE_DONE;
-      if (card_window_is_on_stack()) window_stack_pop(false);
-      main_window_refresh();
+      app_timer_register(50, prv_update_ui, NULL);
       break;
     }
     case MSG_ERROR: {
       Tuple *err_t = dict_find(iter, KEY_DECK_NAME);
       if (err_t) strncpy(s_state.error_msg, err_t->value->cstring, sizeof(s_state.error_msg) - 1);
       s_state.state = APP_STATE_ERROR;
-      if (card_window_is_on_stack()) window_stack_pop(false);
-      main_window_refresh();
+      app_timer_register(50, prv_update_ui, NULL);
       break;
     }
   }
