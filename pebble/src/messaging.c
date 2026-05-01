@@ -65,8 +65,6 @@ static void parse_deck_list(const char *raw) {
 // ---- Timer callbacks -------------------------------------------------------
 
 static void prv_update_ui(void *ctx) {
-  persist_write_int(98, s_state.state);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "prv_update_ui state=%d decks=%d", (int)s_state.state, s_state.deck_count);
   if (card_window_is_on_stack()) window_stack_pop(false);
 
   if (s_state.state == APP_STATE_FETCHING && s_state.pending_deck[0]) {
@@ -91,7 +89,6 @@ static void prv_update_ui(void *ctx) {
 // ---- Inbox -----------------------------------------------------------------
 
 static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "inbox_received");
   Tuple *type_t = dict_find(iter, KEY_MSG_TYPE);
   if (!type_t) return;
 
@@ -101,7 +98,6 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
     case MSG_DECK_LIST: {
       Tuple *list_t = dict_find(iter, KEY_DECK_LIST);
       if (list_t) parse_deck_list(list_t->value->cstring);
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "deck_count=%d", s_state.deck_count);
       // Check for saved deck to auto-open
       char saved[MAX_DECK_NAME] = {0};
       if (persist_read_string(0, saved, sizeof(saved)) > 0) {
