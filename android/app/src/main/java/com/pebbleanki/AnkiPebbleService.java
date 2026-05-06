@@ -219,7 +219,8 @@ public class AnkiPebbleService extends Service {
                 mCurrentDeckIds.add(e.getValue());
         }
 
-        if (mCurrentDeckIds.isEmpty()) { sendError("Deck not found"); return; }
+        Log.d(TAG, "selectDeck: " + deckName + " → " + mCurrentDeckIds.size() + " deck(s): " + mCurrentDeckIds);
+        if (mCurrentDeckIds.isEmpty()) { sendError("Deck not found: " + deckName); return; }
 
         mCurrentDeckIndex = 0;
         sendNextCard();
@@ -241,22 +242,27 @@ public class AnkiPebbleService extends Service {
         AnkiDroidHelper.CardInfo info = null;
         while (mCurrentDeckIndex < mCurrentDeckIds.size()) {
             info = mAnki.getNextDueCard(mCurrentDeckIds.get(mCurrentDeckIndex));
+            Log.d(TAG, "getNextDueCard deckId=" + mCurrentDeckIds.get(mCurrentDeckIndex) + " → " + (info != null ? info.noteId + "/" + info.cardOrd : "null"));
             if (info != null) break;
             mCurrentDeckIndex++;
         }
 
         if (info == null) {
+            Log.d(TAG, "sendNextCard: no due cards, sending DONE");
             sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
             return;
         }
 
         AnkiDroidHelper.CardContent content = mAnki.getCardContent(info.noteId, info.cardOrd);
         if (content == null) {
-            // Skip unreadable card and try next
+            Log.w(TAG, "getCardContent returned null for " + info.noteId + "/" + info.cardOrd + ", skipping");
+            // Advance past this card without recursive call to avoid stack overflow
             mAnki.answerCard(info.noteId, info.cardOrd, EASE_AGAIN);
+            mCurrentDeckIndex = 0;
             sendNextCard();
             return;
         }
+        Log.d(TAG, "sending card: front=" + content.front.substring(0, Math.min(30, content.front.length())));
 
         mCurrentNoteId  = info.noteId;
         mCurrentCardOrd = info.cardOrd;
