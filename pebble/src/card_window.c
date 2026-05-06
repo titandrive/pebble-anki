@@ -8,7 +8,7 @@
 //        │ hint bar [16px]              │  FONT_KEY_GOTHIC_14, inverted
 //  y=16  ├──────────────────────────────┤
 //        │                              │
-//        │  card text (scrollable)      │  ScrollLayer viewport
+//        │  card text (scrollable)      │  plain Layer viewport + TextLayer
 //        │                              │
 //  y=-40 ├──────────────────────────────┤
 //        │  answer prompt [40px]        │  FONT_KEY_GOTHIC_18_BOLD, center
@@ -27,30 +27,38 @@
 #define PAD          4
 #define SCROLL_STEP 20
 
-static Window      *s_window;
-static TextLayer   *s_hint_layer;
-static ScrollLayer *s_scroll_layer;
-static TextLayer   *s_content_layer;
-static TextLayer   *s_prompt_layer;
+static Window    *s_window;
+static TextLayer *s_hint_layer;
+static Layer     *s_clip_layer;
+static TextLayer *s_content_layer;
+static TextLayer *s_prompt_layer;
 
 static bool s_showing_back;
 static bool s_waiting;
+static int  s_scroll_offset;
 static int  s_content_h;
+static int  s_scroll_area_h;
+static int  s_content_w;
 
 // ---- Scroll ----------------------------------------------------------------
 
+static void prv_apply_scroll(void) {
+  if (s_scroll_offset < 0) s_scroll_offset = 0;
+  int max_scroll = s_content_h > s_scroll_area_h ? s_content_h - s_scroll_area_h : 0;
+  if (s_scroll_offset > max_scroll) s_scroll_offset = max_scroll;
+  layer_set_frame(text_layer_get_layer(s_content_layer),
+    GRect(0, PAD - s_scroll_offset, s_content_w, s_content_h));
+}
+
 static void prv_load_text(const char *text) {
-  GRect sl_bounds = layer_get_bounds(scroll_layer_get_layer(s_scroll_layer));
-  int content_w = sl_bounds.size.w;
+  s_scroll_offset = 0;
   GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
   GSize sz = graphics_text_layout_get_content_size(
-      text, font, GRect(0, 0, content_w, 2000),
-      GTextOverflowModeWordWrap, GTextAlignmentLeft);
+    text, font, GRect(0, 0, s_content_w, 2000),
+    GTextOverflowModeWordWrap, GTextAlignmentLeft);
   s_content_h = sz.h + PAD * 2;
-  text_layer_set_size(s_content_layer, GSize(content_w, s_content_h));
-  scroll_layer_set_content_size(s_scroll_layer, GSize(content_w, s_content_h));
-  scroll_layer_set_content_offset(s_scroll_layer, GPointZero, false);
   text_layer_set_text(s_content_layer, text);
+  prv_apply_scroll();
 }
 
 // ---- Helpers ---------------------------------------------------------------
@@ -90,19 +98,13 @@ static void prv_down_click(ClickRecognizerRef r, void *ctx) {
 }
 
 static void prv_scroll_up(ClickRecognizerRef r, void *ctx) {
-  GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
-  offset.y += SCROLL_STEP;
-  if (offset.y > 0) offset.y = 0;
-  scroll_layer_set_content_offset(s_scroll_layer, offset, false);
+  s_scroll_offset -= SCROLL_STEP;
+  prv_apply_scroll();
 }
 
 static void prv_scroll_down(ClickRecognizerRef r, void *ctx) {
-  GPoint offset = scroll_layer_get_content_offset(s_scroll_layer);
-  int scroll_area_h = layer_get_bounds(scroll_layer_get_layer(s_scroll_layer)).size.h;
-  int max_scroll = MAX(0, s_content_h - scroll_area_h);
-  offset.y -= SCROLL_STEP;
-  if (offset.y < -max_scroll) offset.y = -max_scroll;
-  scroll_layer_set_content_offset(s_scroll_layer, offset, false);
+  s_scroll_offset += SCROLL_STEP;
+  prv_apply_scroll();
 }
 
 static void prv_long_select(ClickRecognizerRef r, void *ctx) {
@@ -126,7 +128,8 @@ static void prv_window_load(Window *win) {
   GRect bounds = layer_get_bounds(root);
   int w = bounds.size.w;
   int h = bounds.size.h;
-  int scroll_area_h = h - HINT_H - PROMPT_H;
+  s_scroll_area_h = h - HINT_H - PROMPT_H;
+  s_content_w = w - PAD * 2;
 
   // Hint bar
   s_hint_layer = text_layer_create(GRect(0, 0, w, HINT_H));
@@ -136,17 +139,16 @@ static void prv_window_load(Window *win) {
   text_layer_set_text_color(s_hint_layer, GColorWhite);
   layer_add_child(root, text_layer_get_layer(s_hint_layer));
 
-  // Scroll viewport
-  s_scroll_layer = scroll_layer_create(GRect(0, HINT_H, w, scroll_area_h));
-  layer_add_child(root, scroll_layer_get_layer(s_scroll_layer));
-  window_set_click_config_provider(win, prv_click_config);
+  // Clip viewport
+  s_clip_layer = layer_create(GRect(0, HINT_H, w, s_scroll_area_h));
+  layer_add_child(root, s_clip_layer);
 
-  // Content TextLayer inside scroll layer
-  s_content_layer = text_layer_create(GRect(PAD, PAD, w - PAD * 2, scroll_area_h));
+  // Content TextLayer — child of clip layer, repositioned to scroll
+  s_content_layer = text_layer_create(GRect(0, PAD, s_content_w, s_scroll_area_h));
   text_layer_set_font(s_content_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
   text_layer_set_overflow_mode(s_content_layer, GTextOverflowModeWordWrap);
   text_layer_set_background_color(s_content_layer, GColorClear);
-  scroll_layer_add_child(s_scroll_layer, text_layer_get_layer(s_content_layer));
+  layer_add_child(s_clip_layer, text_layer_get_layer(s_content_layer));
 
   // Prompt bar
   s_prompt_layer = text_layer_create(GRect(0, h - PROMPT_H, w, PROMPT_H));
@@ -155,18 +157,19 @@ static void prv_window_load(Window *win) {
   text_layer_set_background_color(s_prompt_layer, GColorClear);
   layer_add_child(root, text_layer_get_layer(s_prompt_layer));
 
+  window_set_click_config_provider(win, prv_click_config);
   prv_show_front();
 }
 
 static void prv_window_unload(Window *win) {
   text_layer_destroy(s_hint_layer);
-  text_layer_destroy(s_content_layer);
+  text_layer_destroy(s_content_layer);  // destroy child before parent layer
+  layer_destroy(s_clip_layer);
   text_layer_destroy(s_prompt_layer);
-  scroll_layer_destroy(s_scroll_layer);
   s_hint_layer    = NULL;
   s_content_layer = NULL;
+  s_clip_layer    = NULL;
   s_prompt_layer  = NULL;
-  s_scroll_layer  = NULL;
 }
 
 // ---- Public API ------------------------------------------------------------
