@@ -256,8 +256,9 @@ public class AnkiPebbleService extends Service {
         }
 
         if (info == null) {
-            Log.d(TAG, "sendNextCard: no due cards, sending DONE");
-            sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
+            String deckIdStr = mCurrentDeckIds.isEmpty() ? "none" : String.valueOf(mCurrentDeckIds.get(0));
+            Log.d(TAG, "sendNextCard: no due cards for deck id=" + deckIdStr);
+            sendError("No cards\ndeckId=" + deckIdStr);
             return;
         }
 
