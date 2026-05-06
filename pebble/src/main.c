@@ -1,18 +1,23 @@
 #include <pebble.h>
-
-static Window *s_win;
+#include "messaging.h"
+#include "main_window.h"
+#include "card_window.h"
 
 static void init(void) {
-  s_win = window_create();
-  window_stack_push(s_win, true);
+  main_window_init();
+  card_window_init();
+  messaging_init();
+  main_window_push();
+  send_get_decks();
 }
 
 static void deinit(void) {
-  window_destroy(s_win);
+  messaging_deinit();
+  card_window_deinit();
+  main_window_deinit();
 }
 
 int main(void) {
-  APP_LOG(APP_LOG_LEVEL_ERROR, "MAIN");
   init();
   app_event_loop();
   deinit();
