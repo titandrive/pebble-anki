@@ -196,7 +196,7 @@ void main_window_refresh(void) {
       case APP_STATE_LOADING:  msg = "Connecting\nto Anki..."; break;
       case APP_STATE_FETCHING: msg = "Loading\ncards...";      break;
       case APP_STATE_DONE:     msg = "Deck\ncomplete!";        break;
-      case APP_STATE_ERROR:    msg = "Error!\nCheck Anki.";    break;
+      case APP_STATE_ERROR:    msg = s->error_msg[0] ? s->error_msg : "Error!\nCheck Anki."; break;
       default:                 msg = "";                        break;
     }
     text_layer_set_text(s_status_layer, msg);
