@@ -161,6 +161,9 @@ static void prv_window_load(Window *win) {
   prv_show_front();
 }
 
+static void prv_window_appear(Window *win) {}
+static void prv_window_disappear(Window *win) {}
+
 static void prv_window_unload(Window *win) {
   text_layer_destroy(s_hint_layer);
   text_layer_destroy(s_content_layer);
@@ -178,8 +181,10 @@ void card_window_init(void) {
   s_window = window_create();
   window_set_background_color(s_window, GColorWhite);
   window_set_window_handlers(s_window, (WindowHandlers){
-    .load   = prv_window_load,
-    .unload = prv_window_unload,
+    .load      = prv_window_load,
+    .unload    = prv_window_unload,
+    .appear    = prv_window_appear,
+    .disappear = prv_window_disappear,
   });
 }
 
