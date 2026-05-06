@@ -105,6 +105,15 @@ static void prv_scroll_down(ClickRecognizerRef r, void *ctx) {
   scroll_layer_set_content_offset(s_scroll_layer, offset, false);
 }
 
+static void prv_back_click(ClickRecognizerRef r, void *ctx) {
+  window_stack_pop(true);  // back to deck picker
+}
+
+static void prv_long_back(ClickRecognizerRef r, void *ctx) {
+  window_stack_pop(false);  // pop card window (no anim)
+  window_stack_pop(true);   // pop main window → exit app
+}
+
 static void prv_long_select(ClickRecognizerRef r, void *ctx) {
   window_stack_pop(true);
   main_window_show_deck_menu();
@@ -114,9 +123,11 @@ static void prv_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP,     prv_up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN,   prv_down_click);
+  window_single_click_subscribe(BUTTON_ID_BACK,   prv_back_click);
   window_long_click_subscribe(BUTTON_ID_SELECT, 0, prv_long_select, NULL);
   window_long_click_subscribe(BUTTON_ID_UP,     0, prv_scroll_up,   NULL);
   window_long_click_subscribe(BUTTON_ID_DOWN,   0, prv_scroll_down, NULL);
+  window_long_click_subscribe(BUTTON_ID_BACK,   0, prv_long_back,   NULL);
 }
 
 // ---- Window lifecycle ------------------------------------------------------

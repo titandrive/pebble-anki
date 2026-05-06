@@ -68,10 +68,20 @@ static void prv_select_click(ClickRecognizerRef r, void *ctx) {
   send_select_deck(s->deck_names[s_selected_idx]);
 }
 
+static void prv_back_click(ClickRecognizerRef r, void *ctx) {
+  // single back does nothing on the root screen — stay in app
+}
+
+static void prv_long_back(ClickRecognizerRef r, void *ctx) {
+  window_stack_pop(true);  // exit app
+}
+
 static void prv_click_config(void *ctx) {
   window_single_click_subscribe(BUTTON_ID_UP,     prv_up_click);
   window_single_click_subscribe(BUTTON_ID_DOWN,   prv_down_click);
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
+  window_single_click_subscribe(BUTTON_ID_BACK,   prv_back_click);
+  window_long_click_subscribe(BUTTON_ID_BACK, 0,  prv_long_back, NULL);
 }
 
 // ---- Window lifecycle ------------------------------------------------------
@@ -134,11 +144,16 @@ static void prv_window_unload(Window *win) {
 
 // ---- Public API ------------------------------------------------------------
 
+static void prv_window_appear(Window *win) {
+  main_window_refresh();
+}
+
 void main_window_init(void) {
   s_window = window_create();
   window_set_window_handlers(s_window, (WindowHandlers){
     .load   = prv_window_load,
     .unload = prv_window_unload,
+    .appear = prv_window_appear,
   });
 }
 
