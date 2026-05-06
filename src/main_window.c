@@ -50,9 +50,6 @@ static void prv_menu_draw_row(GContext *gctx, const Layer *cell_layer,
   }
 }
 
-static void prv_menu_selection_changed(MenuLayer *ml, MenuIndex new_idx,
-                                       MenuIndex old_idx, void *ctx) {}
-
 static void prv_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   AppState *s = messaging_get_state();
   if (idx->row >= (uint16_t)s->deck_count) return;
@@ -86,9 +83,8 @@ static void prv_window_load(Window *win) {
     .get_header_height = prv_menu_header_height,
     .get_cell_height  = prv_menu_row_height,
     .draw_header      = prv_menu_draw_header,
-    .draw_row          = prv_menu_draw_row,
-    .select_click      = prv_menu_select,
-    .selection_changed = prv_menu_selection_changed,
+    .draw_row         = prv_menu_draw_row,
+    .select_click     = prv_menu_select,
   });
   menu_layer_set_click_config_onto_window(s_menu_layer, win);
   layer_add_child(root, menu_layer_get_layer(s_menu_layer));
