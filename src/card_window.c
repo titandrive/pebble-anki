@@ -138,11 +138,8 @@ static void prv_window_load(Window *win) {
 
   // Scroll viewport
   s_scroll_layer = scroll_layer_create(GRect(0, HINT_H, w, scroll_area_h));
-  scroll_layer_set_callbacks(s_scroll_layer, (ScrollLayerCallbacks){
-      .click_config_provider = prv_click_config
-  });
-  scroll_layer_set_click_config_onto_window(s_scroll_layer, win);
   layer_add_child(root, scroll_layer_get_layer(s_scroll_layer));
+  window_set_click_config_provider(win, prv_click_config);
 
   // Content TextLayer inside scroll layer
   s_content_layer = text_layer_create(GRect(PAD, PAD, w - PAD * 2, scroll_area_h));
