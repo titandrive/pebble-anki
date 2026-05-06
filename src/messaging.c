@@ -147,6 +147,7 @@ static void prv_inbox_dropped(AppMessageResult reason, void *ctx) {
 // ---- Init / deinit ---------------------------------------------------------
 
 void messaging_init(void) {
+  persist_delete(0);  // DEBUG: clear saved deck to prevent auto-open
   memset(&s_state, 0, sizeof(s_state));
   s_state.state = APP_STATE_LOADING;
 
