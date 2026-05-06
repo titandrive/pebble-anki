@@ -12,6 +12,7 @@ static void deinit(void) {
 }
 
 int main(void) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "MAIN");
   init();
   app_event_loop();
   deinit();
