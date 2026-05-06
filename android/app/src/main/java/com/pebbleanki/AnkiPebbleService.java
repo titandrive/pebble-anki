@@ -223,17 +223,13 @@ public class AnkiPebbleService extends Service {
                 mDeckNameToId.put(d.name, d.id);
         }
 
-        // Collect the selected deck + all subdecks (name starts with "deckName::")
-        String prefix = deckName + "::";
+        Long deckId = mDeckNameToId.get(deckName);
+        Log.d(TAG, "selectDeck: " + deckName + " → id=" + deckId);
+        if (deckId == null) { sendError("Deck not found: " + deckName); return; }
+
+        // Pass just the parent deck ID — AnkiDroid's scheduler includes subdecks automatically
         mCurrentDeckIds = new ArrayList<>();
-        for (Map.Entry<String, Long> e : mDeckNameToId.entrySet()) {
-            if (e.getKey().equals(deckName) || e.getKey().startsWith(prefix))
-                mCurrentDeckIds.add(e.getValue());
-        }
-
-        Log.d(TAG, "selectDeck: " + deckName + " → " + mCurrentDeckIds.size() + " deck(s): " + mCurrentDeckIds);
-        if (mCurrentDeckIds.isEmpty()) { sendError("Deck not found: " + deckName); return; }
-
+        mCurrentDeckIds.add(deckId);
         mCurrentDeckIndex = 0;
         sendNextCard();
     }

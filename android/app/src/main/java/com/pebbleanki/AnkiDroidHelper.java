@@ -104,20 +104,24 @@ public class AnkiDroidHelper {
 
     /**
      * Returns the next due card for a deck, or null if none are due.
-     * AnkiDroid's scheduler picks which card to show next.
+     * AnkiDroid's scheduler picks which card to show next and handles subdecks.
+     *
+     * Note: AnkiDroid's ContentProvider uses a non-standard selection format —
+     * selection is just the key name ("deckID"), not a SQL clause ("deckID = ?").
      */
     public CardInfo getNextDueCard(long deckId) {
         Cursor c = null;
         try {
             c = mCr.query(REVIEW_URI,
-                    new String[]{COL_NOTE_ID, COL_CARD_ORD},
-                    "deckID = ?",
+                    null,
+                    "deckID",
                     new String[]{String.valueOf(deckId)},
                     null);
             if (c == null || !c.moveToFirst()) return null;
-            long noteId  = c.getLong(c.getColumnIndexOrThrow(COL_NOTE_ID));
-            int  cardOrd = c.getInt(c.getColumnIndexOrThrow(COL_CARD_ORD));
-            return new CardInfo(noteId, cardOrd);
+            int noteCol = c.getColumnIndex(COL_NOTE_ID);
+            int ordCol  = c.getColumnIndex(COL_CARD_ORD);
+            if (noteCol == -1 || ordCol == -1) return null;
+            return new CardInfo(c.getLong(noteCol), c.getInt(ordCol));
         } catch (Exception e) {
             return null;
         } finally {
@@ -130,12 +134,10 @@ public class AnkiDroidHelper {
         Uri cardUri = Uri.withAppendedPath(NOTES_URI, noteId + "/cards/" + cardOrd);
         Cursor c = null;
         try {
-            c = mCr.query(cardUri,
-                    new String[]{COL_QUESTION, COL_ANSWER},
-                    null, null, null);
+            c = mCr.query(cardUri, null, null, null, null);
             if (c == null || !c.moveToFirst()) return null;
-            String front = c.getString(c.getColumnIndexOrThrow(COL_QUESTION));
-            String back  = c.getString(c.getColumnIndexOrThrow(COL_ANSWER));
+            String front = pickColumn(c, "question_simple", "question");
+            String back  = pickColumn(c, "answer_simple",   "answer");
             return new CardContent(
                     front == null ? "" : front.trim(),
                     back  == null ? "" : back.trim()
@@ -145,6 +147,14 @@ public class AnkiDroidHelper {
         } finally {
             if (c != null) c.close();
         }
+    }
+
+    private static String pickColumn(Cursor c, String... names) {
+        for (String name : names) {
+            int idx = c.getColumnIndex(name);
+            if (idx != -1) return c.getString(idx);
+        }
+        return null;
     }
 
     /**
