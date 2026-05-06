@@ -173,6 +173,7 @@ public class AnkiPebbleService extends Service {
 
     private void handleWatchMessage(JSONArray msg) {
         int msgType = (int) getUint(msg, KEY_MSG_TYPE);
+        Log.d(TAG, "handleWatchMessage type=" + msgType);
         switch (msgType) {
             case MSG_GET_DECKS:   handleGetDecks();                          break;
             case MSG_SELECT_DECK: handleSelectDeck(getString(msg, KEY_DECK_NAME)); break;
@@ -296,7 +297,6 @@ public class AnkiPebbleService extends Service {
 
     private void sendToPebble(PebbleMsg msg) {
         Intent intent = new Intent(ACTION_SEND);
-        intent.setPackage(PEBBLE_PACKAGE);
         intent.putExtra(EXTRA_UUID, APP_UUID.toString());
         intent.putExtra(EXTRA_MSG, msg.toJson());
         sendBroadcast(intent);
