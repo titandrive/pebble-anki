@@ -50,6 +50,9 @@ static void prv_menu_draw_row(GContext *gctx, const Layer *cell_layer,
   }
 }
 
+static void prv_menu_selection_changed(MenuLayer *ml, MenuIndex new_idx,
+                                       MenuIndex old_idx, void *ctx) {}
+
 static void prv_menu_select(MenuLayer *ml, MenuIndex *idx, void *ctx) {
   AppState *s = messaging_get_state();
   if (idx->row >= (uint16_t)s->deck_count) return;
@@ -83,8 +86,9 @@ static void prv_window_load(Window *win) {
     .get_header_height = prv_menu_header_height,
     .get_cell_height  = prv_menu_row_height,
     .draw_header      = prv_menu_draw_header,
-    .draw_row         = prv_menu_draw_row,
-    .select_click     = prv_menu_select,
+    .draw_row          = prv_menu_draw_row,
+    .select_click      = prv_menu_select,
+    .selection_changed = prv_menu_selection_changed,
   });
   menu_layer_set_click_config_onto_window(s_menu_layer, win);
   layer_add_child(root, menu_layer_get_layer(s_menu_layer));
@@ -94,9 +98,6 @@ static void prv_window_load(Window *win) {
   layer_set_hidden(menu_layer_get_layer(s_menu_layer), true);
   text_layer_set_text(s_status_layer, "Connecting\nto Anki...");
 }
-
-static void prv_window_appear(Window *win) {}
-static void prv_window_disappear(Window *win) {}
 
 static void prv_window_unload(Window *win) {
   text_layer_destroy(s_status_layer);
@@ -110,10 +111,8 @@ static void prv_window_unload(Window *win) {
 void main_window_init(void) {
   s_window = window_create();
   window_set_window_handlers(s_window, (WindowHandlers){
-    .load      = prv_window_load,
-    .unload    = prv_window_unload,
-    .appear    = prv_window_appear,
-    .disappear = prv_window_disappear,
+    .load   = prv_window_load,
+    .unload = prv_window_unload,
   });
 }
 
