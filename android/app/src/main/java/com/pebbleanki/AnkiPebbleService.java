@@ -146,10 +146,14 @@ public class AnkiPebbleService extends Service {
 
                 String msgJson = intent.getStringExtra(EXTRA_MSG);
                 if (msgJson == null) return;
+                Log.d(TAG, "raw msg: " + msgJson);
                 try {
                     handleWatchMessage(new JSONArray(msgJson));
                 } catch (JSONException e) {
                     Log.e(TAG, "Bad JSON from watch: " + msgJson, e);
+                } catch (Exception e) {
+                    Log.e(TAG, "Unhandled exception in handleWatchMessage", e);
+                    sendError("Internal error: " + e.getMessage());
                 }
             }
         };
