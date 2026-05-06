@@ -43,6 +43,7 @@ public class AnkiPebbleService extends Service {
             UUID.fromString("11867ba6-5ed8-45c6-b4b7-32d695240ce5");
 
     // Pebble Intent API actions (via Rebble/Pebble app)
+    private static final String PEBBLE_PACKAGE     = "com.getpebble.android.basalt";
     private static final String ACTION_RECEIVE     = "com.getpebble.action.app.RECEIVE";
     private static final String ACTION_RECEIVE_ACK = "com.getpebble.action.app.RECEIVE_ACK";
     private static final String ACTION_SEND        = "com.getpebble.action.app.SEND";
@@ -163,6 +164,7 @@ public class AnkiPebbleService extends Service {
 
     private void sendAck(int transactionId) {
         Intent ack = new Intent(ACTION_RECEIVE_ACK);
+        ack.setPackage(PEBBLE_PACKAGE);
         ack.putExtra(EXTRA_TRANSACTION, transactionId);
         sendBroadcast(ack);
     }
@@ -294,6 +296,7 @@ public class AnkiPebbleService extends Service {
 
     private void sendToPebble(PebbleMsg msg) {
         Intent intent = new Intent(ACTION_SEND);
+        intent.setPackage(PEBBLE_PACKAGE);
         intent.putExtra(EXTRA_UUID, APP_UUID.toString());
         intent.putExtra(EXTRA_MSG, msg.toJson());
         sendBroadcast(intent);
