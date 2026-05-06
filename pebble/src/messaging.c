@@ -86,6 +86,13 @@ static void prv_update_ui(void *ctx) {
   }
 }
 
+static void prv_return_to_menu(void *ctx) {
+  if (s_state.state == APP_STATE_DONE || s_state.state == APP_STATE_ERROR) {
+    s_state.state = APP_STATE_DECK_MENU;
+    main_window_refresh();
+  }
+}
+
 // ---- Inbox -----------------------------------------------------------------
 
 static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
@@ -128,6 +135,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
     case MSG_DONE: {
       s_state.state = APP_STATE_DONE;
       app_timer_register(50, prv_update_ui, NULL);
+      app_timer_register(2000, prv_return_to_menu, NULL);
       break;
     }
     case MSG_ERROR: {
@@ -135,6 +143,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
       if (err_t) strncpy(s_state.error_msg, err_t->value->cstring, sizeof(s_state.error_msg) - 1);
       s_state.state = APP_STATE_ERROR;
       app_timer_register(50, prv_update_ui, NULL);
+      app_timer_register(2000, prv_return_to_menu, NULL);
       break;
     }
   }

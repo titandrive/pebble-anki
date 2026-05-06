@@ -74,7 +74,8 @@ public class AnkiPebbleService extends Service {
 
     // State for current session
     private final Map<String, Long> mDeckNameToId = new HashMap<>();
-    private long mCurrentDeckId  = -1;
+    private List<Long> mCurrentDeckIds = new ArrayList<>();  // selected deck + all subdecks
+    private int  mCurrentDeckIndex = 0;  // which deck we're currently pulling from
     private long mCurrentNoteId  = -1;
     private int  mCurrentCardOrd = -1;
 
@@ -203,17 +204,23 @@ public class AnkiPebbleService extends Service {
     private void handleSelectDeck(String deckName) {
         if (deckName == null) { sendError("No deck name"); return; }
 
-        Long deckId = mDeckNameToId.get(deckName);
-        if (deckId == null) {
-            // Deck list may have changed — re-query
-            for (AnkiDroidHelper.Deck d : mAnki.getDecks()) {
+        // Ensure deck map is populated
+        if (!mDeckNameToId.containsKey(deckName)) {
+            for (AnkiDroidHelper.Deck d : mAnki.getDecks())
                 mDeckNameToId.put(d.name, d.id);
-                if (d.name.equals(deckName)) deckId = d.id;
-            }
         }
-        if (deckId == null) { sendError("Deck not found"); return; }
 
-        mCurrentDeckId = deckId;
+        // Collect the selected deck + all subdecks (name starts with "deckName::")
+        String prefix = deckName + "::";
+        mCurrentDeckIds = new ArrayList<>();
+        for (Map.Entry<String, Long> e : mDeckNameToId.entrySet()) {
+            if (e.getKey().equals(deckName) || e.getKey().startsWith(prefix))
+                mCurrentDeckIds.add(e.getValue());
+        }
+
+        if (mCurrentDeckIds.isEmpty()) { sendError("Deck not found"); return; }
+
+        mCurrentDeckIndex = 0;
         sendNextCard();
     }
 
@@ -222,13 +229,21 @@ public class AnkiPebbleService extends Service {
         // Validate ease value — only Again and Good come from the watch
         if (ease != EASE_AGAIN && ease != EASE_GOOD) ease = EASE_AGAIN;
         mAnki.answerCard(mCurrentNoteId, mCurrentCardOrd, ease);
+        mCurrentDeckIndex = 0;  // restart deck search for next card
         sendNextCard();
     }
 
     // ---- Card flow ---------------------------------------------------------
 
     private void sendNextCard() {
-        AnkiDroidHelper.CardInfo info = mAnki.getNextDueCard(mCurrentDeckId);
+        // Try each deck (selected + subdecks) until we find a due card
+        AnkiDroidHelper.CardInfo info = null;
+        while (mCurrentDeckIndex < mCurrentDeckIds.size()) {
+            info = mAnki.getNextDueCard(mCurrentDeckIds.get(mCurrentDeckIndex));
+            if (info != null) break;
+            mCurrentDeckIndex++;
+        }
+
         if (info == null) {
             sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
             return;
