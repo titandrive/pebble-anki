@@ -95,6 +95,9 @@ static void prv_window_load(Window *win) {
   text_layer_set_text(s_status_layer, "Connecting\nto Anki...");
 }
 
+static void prv_window_appear(Window *win) {}
+static void prv_window_disappear(Window *win) {}
+
 static void prv_window_unload(Window *win) {
   text_layer_destroy(s_status_layer);
   s_status_layer = NULL;
@@ -107,8 +110,10 @@ static void prv_window_unload(Window *win) {
 void main_window_init(void) {
   s_window = window_create();
   window_set_window_handlers(s_window, (WindowHandlers){
-    .load   = prv_window_load,
-    .unload = prv_window_unload,
+    .load      = prv_window_load,
+    .unload    = prv_window_unload,
+    .appear    = prv_window_appear,
+    .disappear = prv_window_disappear,
   });
 }
 
