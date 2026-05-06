@@ -73,8 +73,9 @@ static void prv_back_click(ClickRecognizerRef r, void *ctx) {
   if (s->state == APP_STATE_FETCHING) {
     s->state = APP_STATE_DECK_MENU;
     main_window_refresh();
+  } else {
+    window_stack_pop(true);  // exit app
   }
-  // on deck menu: no-op (stay in app)
 }
 
 static void prv_long_back(ClickRecognizerRef r, void *ctx) {
