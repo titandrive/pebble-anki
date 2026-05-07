@@ -237,11 +237,11 @@ public class AnkiPebbleService extends Service {
 
     private void handleAnswer(int ease) {
         if (mCurrentNoteId == -1) return;
-        // Validate ease value — only Again and Good come from the watch
         if (ease != EASE_AGAIN && ease != EASE_GOOD) ease = EASE_AGAIN;
         mAnki.answerCard(mCurrentNoteId, mCurrentCardOrd, ease);
-        mCurrentDeckIndex = 0;  // restart deck search for next card
-        sendNextCard();
+        mCurrentDeckIndex = 0;
+        // TEST: skip sendNextCard — send DONE directly to check if delivery works
+        sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
     }
 
     // ---- Card flow ---------------------------------------------------------
