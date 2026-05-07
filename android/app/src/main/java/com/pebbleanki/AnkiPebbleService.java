@@ -253,8 +253,8 @@ public class AnkiPebbleService extends Service {
         Log.d(TAG, "getNextDueCard deck=" + mCurrentDeckName + " → " + (info != null ? info.noteId + "/" + info.cardOrd : "null"));
 
         if (info == null) {
-            Log.d(TAG, "sendNextCard: no due cards diag=" + mAnki.lastDiagnostic);
-            sendError(mAnki.lastDiagnostic);
+            Log.d(TAG, "sendNextCard: no due cards");
+            sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
             return;
         }
 

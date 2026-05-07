@@ -102,50 +102,27 @@ public class AnkiDroidHelper {
         return decks;
     }
 
-    /**
-     * Returns the next due card, or null if none found.
-     * Also populates lastDiagnostic with a short debug string for the watch screen.
-     */
     public String lastDiagnostic = "";
 
+    /**
+     * Returns the next due card for the given deck, or null if none are due.
+     * Tries reviewInfo/ first; falls back to notes search for V3/FSRS scheduler.
+     */
     public CardInfo getNextDueCard(long deckId, String deckName) {
-        StringBuilder diag = new StringBuilder();
+        // Primary: single reviewInfo/ query — do NOT call this twice or it confuses the scheduler
+        CardInfo result = queryReviewInfo(deckId);
+        if (result != null) { lastDiagnostic = "ri"; return result; }
 
-        // 1. reviewInfo/ with deckID
-        int r1 = safeCount(REVIEW_URI, null, "deckID", new String[]{String.valueOf(deckId)});
-        diag.append("ri:").append(r1);
-        if (r1 > 0) { lastDiagnostic = diag.toString(); return queryReviewInfo(deckId); }
-
-        // 2. notes/ selection = Anki search query
+        // Fallback: notes search (works with any scheduler)
         String q = "is:due deck:\"" + deckName + "\"";
-        int r2 = safeCount(NOTES_URI, new String[]{"_id"}, q, null);
-        diag.append(" ns:").append(r2);
-        if (r2 > 0) { lastDiagnostic = diag.toString(); return searchDueNote(q, false); }
+        result = searchDueNote(q, false);
+        if (result != null) { lastDiagnostic = "ns"; return result; }
 
-        // 3. notes/ selectionArgs = Anki search query
-        int r3 = safeCount(NOTES_URI, new String[]{"_id"}, null, new String[]{q});
-        diag.append(" na:").append(r3);
-        if (r3 > 0) { lastDiagnostic = diag.toString(); return searchDueNote(q, true); }
+        result = searchDueNote(q, true);
+        if (result != null) { lastDiagnostic = "na"; return result; }
 
-        // 4. Any notes in deck at all (no is:due filter)
-        String qAny = "deck:\"" + deckName + "\"";
-        int r4 = safeCount(NOTES_URI, new String[]{"_id"}, qAny, null);
-        diag.append(" any:").append(r4);
-
-        lastDiagnostic = diag.toString();
+        lastDiagnostic = "none";
         return null;
-    }
-
-    private int safeCount(Uri uri, String[] proj, String sel, String[] args) {
-        try {
-            Cursor c = mCr.query(uri, proj, sel, args, null);
-            if (c == null) return -1;
-            int n = c.getCount();
-            c.close();
-            return n;
-        } catch (Exception e) {
-            return -2;
-        }
     }
 
     private CardInfo queryReviewInfo(long deckId) {
