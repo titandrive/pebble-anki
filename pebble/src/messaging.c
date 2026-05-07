@@ -143,7 +143,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *ctx) {
       if (err_t) strncpy(s_state.error_msg, err_t->value->cstring, sizeof(s_state.error_msg) - 1);
       s_state.state = APP_STATE_ERROR;
       app_timer_register(50, prv_update_ui, NULL);
-      app_timer_register(2000, prv_return_to_menu, NULL);
+      // No auto-dismiss — user presses back to return to deck menu
       break;
     }
   }

@@ -70,7 +70,7 @@ static void prv_select_click(ClickRecognizerRef r, void *ctx) {
 
 static void prv_back_click(ClickRecognizerRef r, void *ctx) {
   AppState *s = messaging_get_state();
-  if (s->state == APP_STATE_FETCHING) {
+  if (s->state == APP_STATE_FETCHING || s->state == APP_STATE_ERROR) {
     s->state = APP_STATE_DECK_MENU;
     main_window_refresh();
   } else {
