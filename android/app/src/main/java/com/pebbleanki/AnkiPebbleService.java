@@ -164,10 +164,16 @@ public class AnkiPebbleService extends Service {
     }
 
     private void sendAck(int transactionId) {
+        // Send both implicit and targeted — one must reach Rebble regardless of
+        // how its ACTION_RECEIVE_ACK receiver is registered.
         Intent ack = new Intent(ACTION_RECEIVE_ACK);
-        ack.setPackage(PEBBLE_PACKAGE);
         ack.putExtra(EXTRA_TRANSACTION, transactionId);
         sendBroadcast(ack);
+
+        Intent ackTargeted = new Intent(ACTION_RECEIVE_ACK);
+        ackTargeted.setPackage(PEBBLE_PACKAGE);
+        ackTargeted.putExtra(EXTRA_TRANSACTION, transactionId);
+        sendBroadcast(ackTargeted);
     }
 
     // ---- Message handling --------------------------------------------------
@@ -240,8 +246,7 @@ public class AnkiPebbleService extends Service {
         if (ease != EASE_AGAIN && ease != EASE_GOOD) ease = EASE_AGAIN;
         mAnki.answerCard(mCurrentNoteId, mCurrentCardOrd, ease);
         mCurrentDeckIndex = 0;
-        // TEST: skip sendNextCard — send DONE directly to check if delivery works
-        sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
+        sendNextCard();
     }
 
     // ---- Card flow ---------------------------------------------------------
