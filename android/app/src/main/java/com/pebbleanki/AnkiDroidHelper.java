@@ -103,19 +103,27 @@ public class AnkiDroidHelper {
     }
 
     /**
-     * Returns the next due card for a deck, or null if none are due.
-     * AnkiDroid's scheduler picks which card to show next and handles subdecks.
+     * Returns the next due card for the given deck, or null if none are due.
      *
-     * Note: AnkiDroid's ContentProvider uses a non-standard selection format —
-     * selection is just the key name ("deckID"), not a SQL clause ("deckID = ?").
+     * Tries reviewInfo/ first (fast, scheduler-aware). If that returns nothing
+     * (broken on V3/FSRS scheduler in some AnkiDroid versions), falls back to
+     * searching notes directly with Anki search syntax.
      */
-    public CardInfo getNextDueCard(long deckId) {
+    public CardInfo getNextDueCard(long deckId, String deckName) {
+        // Primary: reviewInfo/ with deckID
+        CardInfo result = queryReviewInfo(deckId);
+        if (result != null) return result;
+
+        // Fallback: search notes with "is:due deck:<name>" — works with any scheduler
+        return searchDueNote(deckName);
+    }
+
+    private CardInfo queryReviewInfo(long deckId) {
         Cursor c = null;
         try {
-            c = mCr.query(REVIEW_URI,
-                    null,
-                    "deckID",
-                    new String[]{String.valueOf(deckId)},
+            c = mCr.query(REVIEW_URI, null,
+                    deckId > 0 ? "deckID" : null,
+                    deckId > 0 ? new String[]{String.valueOf(deckId)} : null,
                     null);
             if (c == null || !c.moveToFirst()) return null;
             int noteCol = c.getColumnIndex(COL_NOTE_ID);
@@ -124,6 +132,49 @@ public class AnkiDroidHelper {
             return new CardInfo(c.getLong(noteCol), c.getInt(ordCol));
         } catch (Exception e) {
             return null;
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    /**
+     * Fallback for V3/FSRS scheduler: search for a due note in the deck,
+     * then find which of its cards is due by inspecting each card's queue.
+     */
+    private CardInfo searchDueNote(String deckName) {
+        // Query notes with Anki search syntax
+        String query = "is:due deck:\"" + deckName + "\"";
+        Cursor notesCursor = null;
+        try {
+            notesCursor = mCr.query(NOTES_URI, new String[]{"_id"}, query, null, null);
+            if (notesCursor == null || !notesCursor.moveToFirst()) return null;
+            long noteId = notesCursor.getLong(0);
+            return findDueCardOrd(noteId);
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (notesCursor != null) notesCursor.close();
+        }
+    }
+
+    /** Query cards for a note and return the first one that is due (queue >= 0). */
+    private CardInfo findDueCardOrd(long noteId) {
+        Uri cardsUri = Uri.withAppendedPath(NOTES_URI, noteId + "/cards");
+        Cursor c = null;
+        try {
+            c = mCr.query(cardsUri, null, null, null, null);
+            if (c == null) return new CardInfo(noteId, 0); // best-effort: assume ord 0
+            int ordCol   = c.getColumnIndex(COL_CARD_ORD);
+            int queueCol = c.getColumnIndex("queue");
+            while (c.moveToNext()) {
+                int ord   = ordCol   >= 0 ? c.getInt(ordCol)   : 0;
+                int queue = queueCol >= 0 ? c.getInt(queueCol) : 1; // assume due if no queue col
+                if (queue >= 0) return new CardInfo(noteId, ord);
+            }
+            // Fallback: return ord 0
+            return new CardInfo(noteId, 0);
+        } catch (Exception e) {
+            return new CardInfo(noteId, 0);
         } finally {
             if (c != null) c.close();
         }

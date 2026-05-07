@@ -77,8 +77,9 @@ public class AnkiPebbleService extends Service {
 
     // State for current session
     private final Map<String, Long> mDeckNameToId = new HashMap<>();
-    private List<Long> mCurrentDeckIds = new ArrayList<>();  // selected deck + all subdecks
-    private int  mCurrentDeckIndex = 0;  // which deck we're currently pulling from
+    private List<Long> mCurrentDeckIds = new ArrayList<>();
+    private int  mCurrentDeckIndex = 0;
+    private String mCurrentDeckName = "";
     private long mCurrentNoteId  = -1;
     private int  mCurrentCardOrd = -1;
 
@@ -227,7 +228,7 @@ public class AnkiPebbleService extends Service {
         Log.d(TAG, "selectDeck: " + deckName + " → id=" + deckId);
         if (deckId == null) { sendError("Deck not found: " + deckName); return; }
 
-        // Pass just the parent deck ID — AnkiDroid's scheduler includes subdecks automatically
+        mCurrentDeckName = deckName;
         mCurrentDeckIds = new ArrayList<>();
         mCurrentDeckIds.add(deckId);
         mCurrentDeckIndex = 0;
@@ -246,19 +247,14 @@ public class AnkiPebbleService extends Service {
     // ---- Card flow ---------------------------------------------------------
 
     private void sendNextCard() {
-        // Try each deck (selected + subdecks) until we find a due card
-        AnkiDroidHelper.CardInfo info = null;
-        while (mCurrentDeckIndex < mCurrentDeckIds.size()) {
-            info = mAnki.getNextDueCard(mCurrentDeckIds.get(mCurrentDeckIndex));
-            Log.d(TAG, "getNextDueCard deckId=" + mCurrentDeckIds.get(mCurrentDeckIndex) + " → " + (info != null ? info.noteId + "/" + info.cardOrd : "null"));
-            if (info != null) break;
-            mCurrentDeckIndex++;
-        }
+        AnkiDroidHelper.CardInfo info = mAnki.getNextDueCard(
+                mCurrentDeckIds.isEmpty() ? -1 : mCurrentDeckIds.get(0),
+                mCurrentDeckName);
+        Log.d(TAG, "getNextDueCard deck=" + mCurrentDeckName + " → " + (info != null ? info.noteId + "/" + info.cardOrd : "null"));
 
         if (info == null) {
-            String deckIdStr = mCurrentDeckIds.isEmpty() ? "none" : String.valueOf(mCurrentDeckIds.get(0));
-            Log.d(TAG, "sendNextCard: no due cards for deck id=" + deckIdStr);
-            sendError("No cards\ndeckId=" + deckIdStr);
+            Log.d(TAG, "sendNextCard: no due cards");
+            sendToPebble(new PebbleMsg().addUint(KEY_MSG_TYPE, MSG_DONE));
             return;
         }
 
