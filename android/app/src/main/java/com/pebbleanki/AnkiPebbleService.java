@@ -146,17 +146,23 @@ public class AnkiPebbleService extends Service {
                 int transactionId = intent.getIntExtra(EXTRA_TRANSACTION, -1);
                 sendAck(transactionId);
 
-                String msgJson = intent.getStringExtra(EXTRA_MSG);
+                final String msgJson = intent.getStringExtra(EXTRA_MSG);
                 if (msgJson == null) return;
                 Log.d(TAG, "raw msg: " + msgJson);
-                try {
-                    handleWatchMessage(new JSONArray(msgJson));
-                } catch (JSONException e) {
-                    Log.e(TAG, "Bad JSON from watch: " + msgJson, e);
-                } catch (Exception e) {
-                    Log.e(TAG, "Unhandled exception in handleWatchMessage", e);
-                    sendError("Internal error: " + e.getMessage());
-                }
+
+                // Delay processing by 150ms so Rebble has time to handle the ACK
+                // before we broadcast the response. Without this delay, the response
+                // broadcast races with the ACK and Rebble drops it.
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    try {
+                        handleWatchMessage(new JSONArray(msgJson));
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Bad JSON from watch: " + msgJson, e);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Unhandled exception in handleWatchMessage", e);
+                        sendError("Internal error: " + e.getMessage());
+                    }
+                }, 150);
             }
         };
         IntentFilter filter = new IntentFilter(ACTION_RECEIVE);
