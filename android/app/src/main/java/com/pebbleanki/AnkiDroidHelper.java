@@ -213,14 +213,18 @@ public class AnkiDroidHelper {
      *
      * @param ease 1=Again, 2=Hard, 3=Good, 4=Easy
      */
-    public void answerCard(long noteId, int cardOrd, int ease) {
+    public void answerCard(long noteId, int cardOrd, int ease, long deckId) {
+        // Re-query reviewInfo to ensure an active review session exists before answering.
+        // If we previously got the card via notes search (no session), this starts one.
+        queryReviewInfo(deckId);
+
         ContentValues cv = new ContentValues();
         cv.put(COL_NOTE_ID,   noteId);
         cv.put(COL_CARD_ORD,  cardOrd);
         cv.put(COL_EASE,      ease);
         cv.put(COL_TIME_TAKEN, 5000); // ms — not tracked, required by API
         try {
-            mCr.update(REVIEW_URI, cv, null, null);
+            mCr.update(REVIEW_URI, cv, null, new String[]{String.valueOf(deckId)});
         } catch (Exception e) {
             // Ignore — next getNextDueCard will still work
         }

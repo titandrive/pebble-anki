@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import android.content.pm.ResolveInfo;
+
 /**
  * Background service that bridges the Pebble watch and AnkiDroid.
  *
@@ -74,6 +76,7 @@ public class AnkiPebbleService extends Service {
 
     private AnkiDroidHelper mAnki;
     private BroadcastReceiver mReceiver;
+    private String mPebblePackage = PEBBLE_PACKAGE;
 
     // State for current session
     private final Map<String, Long> mDeckNameToId = new HashMap<>();
@@ -91,9 +94,22 @@ public class AnkiPebbleService extends Service {
     public void onCreate() {
         super.onCreate();
         mAnki = new AnkiDroidHelper(this);
+        mPebblePackage = detectPebblePackage();
         startForegroundWithNotification();
         registerPebbleReceiver();
-        Log.i(TAG, "Service started");
+        Log.i(TAG, "Service started, pebble package=" + mPebblePackage);
+    }
+
+    private String detectPebblePackage() {
+        Intent probe = new Intent(ACTION_RECEIVE_ACK);
+        List<ResolveInfo> handlers = getPackageManager().queryBroadcastReceivers(probe, 0);
+        for (ResolveInfo ri : handlers) {
+            String pkg = ri.activityInfo.packageName;
+            Log.i(TAG, "ACTION_RECEIVE_ACK receiver: " + pkg);
+            return pkg;
+        }
+        Log.w(TAG, "No ACTION_RECEIVE_ACK receiver found, using fallback: " + PEBBLE_PACKAGE);
+        return PEBBLE_PACKAGE;
     }
 
     private void startForegroundWithNotification() {
@@ -170,16 +186,18 @@ public class AnkiPebbleService extends Service {
     }
 
     private void sendAck(int transactionId) {
-        // Send both implicit and targeted — one must reach Rebble regardless of
-        // how its ACTION_RECEIVE_ACK receiver is registered.
+        // Implicit broadcast (for older Rebble or receivers registered at runtime)
         Intent ack = new Intent(ACTION_RECEIVE_ACK);
         ack.putExtra(EXTRA_TRANSACTION, transactionId);
         sendBroadcast(ack);
 
+        // Targeted broadcast using runtime-detected package (Android 8+ requires this
+        // for manifest-registered receivers)
         Intent ackTargeted = new Intent(ACTION_RECEIVE_ACK);
-        ackTargeted.setPackage(PEBBLE_PACKAGE);
+        ackTargeted.setPackage(mPebblePackage);
         ackTargeted.putExtra(EXTRA_TRANSACTION, transactionId);
         sendBroadcast(ackTargeted);
+        Log.d(TAG, "sendAck txn=" + transactionId + " pkg=" + mPebblePackage);
     }
 
     // ---- Message handling --------------------------------------------------
@@ -250,7 +268,8 @@ public class AnkiPebbleService extends Service {
     private void handleAnswer(int ease) {
         if (mCurrentNoteId == -1) return;
         if (ease != EASE_AGAIN && ease != EASE_GOOD) ease = EASE_AGAIN;
-        mAnki.answerCard(mCurrentNoteId, mCurrentCardOrd, ease);
+        long deckId = mCurrentDeckIds.isEmpty() ? -1 : mCurrentDeckIds.get(0);
+        mAnki.answerCard(mCurrentNoteId, mCurrentCardOrd, ease, deckId);
         mCurrentDeckIndex = 0;
         sendNextCard();
     }
@@ -273,7 +292,8 @@ public class AnkiPebbleService extends Service {
         if (content == null) {
             Log.w(TAG, "getCardContent returned null for " + info.noteId + "/" + info.cardOrd + ", skipping");
             // Advance past this card without recursive call to avoid stack overflow
-            mAnki.answerCard(info.noteId, info.cardOrd, EASE_AGAIN);
+            mAnki.answerCard(info.noteId, info.cardOrd, EASE_AGAIN,
+                    mCurrentDeckIds.isEmpty() ? -1 : mCurrentDeckIds.get(0));
             mCurrentDeckIndex = 0;
             sendNextCard();
             return;
