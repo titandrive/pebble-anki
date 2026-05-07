@@ -112,48 +112,40 @@ public class AnkiDroidHelper {
         StringBuilder diag = new StringBuilder();
 
         // 1. reviewInfo/ with deckID
-        int r1 = cursorCount(mCr.query(REVIEW_URI, null, "deckID",
-                new String[]{String.valueOf(deckId)}, null));
+        int r1 = safeCount(REVIEW_URI, null, "deckID", new String[]{String.valueOf(deckId)});
         diag.append("ri:").append(r1);
+        if (r1 > 0) { lastDiagnostic = diag.toString(); return queryReviewInfo(deckId); }
 
-        if (r1 > 0) {
-            lastDiagnostic = diag.toString();
-            return queryReviewInfo(deckId);
-        }
-
-        // 2. notes/ with selection = search query
+        // 2. notes/ selection = Anki search query
         String q = "is:due deck:\"" + deckName + "\"";
-        int r2 = cursorCount(mCr.query(NOTES_URI, new String[]{"_id"}, q, null, null));
+        int r2 = safeCount(NOTES_URI, new String[]{"_id"}, q, null);
         diag.append(" ns:").append(r2);
+        if (r2 > 0) { lastDiagnostic = diag.toString(); return searchDueNote(q, false); }
 
-        if (r2 > 0) {
-            lastDiagnostic = diag.toString();
-            return searchDueNote(q, false);
-        }
-
-        // 3. notes/ with selectionArgs = search query
-        int r3 = cursorCount(mCr.query(NOTES_URI, new String[]{"_id"}, null, new String[]{q}, null));
+        // 3. notes/ selectionArgs = Anki search query
+        int r3 = safeCount(NOTES_URI, new String[]{"_id"}, null, new String[]{q});
         diag.append(" na:").append(r3);
+        if (r3 > 0) { lastDiagnostic = diag.toString(); return searchDueNote(q, true); }
 
-        if (r3 > 0) {
-            lastDiagnostic = diag.toString();
-            return searchDueNote(q, true);
-        }
-
-        // 4. Any notes in deck at all (drop is:due)
+        // 4. Any notes in deck at all (no is:due filter)
         String qAny = "deck:\"" + deckName + "\"";
-        int r4 = cursorCount(mCr.query(NOTES_URI, new String[]{"_id"}, qAny, null, null));
+        int r4 = safeCount(NOTES_URI, new String[]{"_id"}, qAny, null);
         diag.append(" any:").append(r4);
 
         lastDiagnostic = diag.toString();
         return null;
     }
 
-    private static int cursorCount(Cursor c) {
-        if (c == null) return -1;
-        int n = c.getCount();
-        c.close();
-        return n;
+    private int safeCount(Uri uri, String[] proj, String sel, String[] args) {
+        try {
+            Cursor c = mCr.query(uri, proj, sel, args, null);
+            if (c == null) return -1;
+            int n = c.getCount();
+            c.close();
+            return n;
+        } catch (Exception e) {
+            return -2;
+        }
     }
 
     private CardInfo queryReviewInfo(long deckId) {
